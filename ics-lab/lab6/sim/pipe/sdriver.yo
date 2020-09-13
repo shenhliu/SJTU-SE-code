@@ -1,0 +1,174 @@
+                            | #######################################################################
+                            | # Test for copying block of size 4;
+                            | #######################################################################
+0x000:                      | 	.pos 0
+0x000: 30f4b002000000000000 | main:	irmovq Stack, %rsp  	# Set up stack pointer
+                            | 
+                            | 	# Set up arguments for copy function and then invoke it
+0x00a: 30f20400000000000000 | 	irmovq $4, %rdx		# src and dst have 4 elements
+0x014: 30f60802000000000000 | 	irmovq dest, %rsi	# dst array
+0x01e: 30f7d801000000000000 | 	irmovq src, %rdi	# src array
+0x028: 803200000000000000   | 	call ncopy		 
+0x031: 00                   | 	halt			# should halt with num nonzeros in %rax
+0x032:                      | StartFun:
+                            | # 518021910273 Liu Shenheng
+                            | # This file use loop unrolling to speed up the operation.
+                            | # I choose unroll factor k = 8.
+                            | 
+                            | # Loop1-Loop 9 are every little step in a cycle.They moved eight numbers.
+                            | # Change CC at the end of each small tag, and then decide whether to set positive-count at the next tag
+                            | # Loop Lable controls the loop variable and judges the remaining length.
+                            | # When the length is less than 8, enter the remain tag.This tag judges how many numbers need be moved.
+                            | # Remain1-9 is similar to Loop 1-9. They solve the rest of the numbers
+                            | 
+                            | # I first try k = 2.Then it is to slow so my score = 0
+                            | # Then I try k = 8.My score is 44.5.
+                            | # When I choose k = 10,the code length exceeded the system requirements.
+                            | # When I try k = 9,I got 41.2,even lower than k = 8
+                            | # So 44.5 is my limit
+                            | 
+                            | # The second version
+                            | # My roommate told me that k = 6 is better than k = 8.So I try it.
+                            | # Then I got 48.7. That's amazing. Then I try k = 4,then I got 48.8.
+                            | # I think it's very strange. When k<=10,the regeisters are enough. But why k = 4 has better performance than k = 8? 
+                            | # This may be beyond my knowledge.
+                            | # I decided to study it later.
+                            | # Could you explain it to me if you like?
+                            | 
+                            | 
+                            | #/* $begin ncopy-ys */
+                            | ##################################################################
+                            | # ncopy.ys - Copy a src block of len words to dst.
+                            | # Return the number of positive words (>0) contained in src.
+                            | #
+                            | # Include your name and ID here.
+                            | #
+                            | # Describe how and why you modified the baseline code.
+                            | #
+                            | ##################################################################
+                            | # Do not modify this portion
+                            | # Function prologue.
+                            | # %rdi = src, %rsi = dst, %rdx = len
+0x032:                      | ncopy:
+                            | 
+                            | ##################################################################
+                            | # You can modify this portion
+                            | 	
+0x032: c0f2fcffffffffffffff | 	iaddq $-4,%rdx		# len < 8?
+0x03c: 721001000000000000   | 	jl Remain			# if so, goto Remain:
+                            | 
+0x045: 50a70000000000000000 | Loop1:	mrmovq (%rdi), %r10	# read val from src...
+0x04f: 50b70800000000000000 | 	mrmovq 8(%rdi), %r11	# read val from src...
+0x059: 40a60000000000000000 | 	rmmovq %r10, (%rsi)	# ...and store it to dst
+0x063: 62aa                 | 	andq %r10, %r10		# val <= 0?
+0x065: 717800000000000000   | 	jle Loop2		# if so, goto Loop2:
+0x06e: c0f00100000000000000 | 	iaddq $0x1, %rax		# count++
+0x078: 50a71000000000000000 | Loop2:	mrmovq 16(%rdi), %r10	# read val from src...
+0x082: 40b60800000000000000 | 	rmmovq %r11, 8(%rsi)	# ...and store it to dst
+0x08c: 62bb                 | 	andq %r11, %r11		# val <= 0?
+0x08e: 71a100000000000000   | 	jle Loop3		# if so, goto Loop3:
+0x097: c0f00100000000000000 | 	iaddq $0x1, %rax		# count++
+0x0a1: 50b71800000000000000 | Loop3:	mrmovq 24(%rdi), %r11	# read val from src...
+0x0ab: 40a61000000000000000 | 	rmmovq %r10, 16(%rsi)	# ...and store it to dst
+0x0b5: 62aa                 | 	andq %r10, %r10		# val <= 0?
+0x0b7: 71ca00000000000000   | 	jle Loop4		# if so, goto Loop4:
+0x0c0: c0f00100000000000000 | 	iaddq $0x1, %rax		# count++
+0x0ca:                      | Loop4:		# read val from src...
+0x0ca: 40b61800000000000000 | 	rmmovq %r11, 24(%rsi)	# ...and store it to dst
+0x0d4: 62bb                 | 	andq %r11, %r11		# val <= 0?
+0x0d6: 71e900000000000000   | 	jle Loop		# if so, goto Loop5:
+0x0df: c0f00100000000000000 | 	iaddq $0x1, %rax		# count++
+                            | 
+0x0e9:                      | Loop:
+0x0e9: c0f72000000000000000 | 	iaddq $0x20, %rdi	# src+8
+0x0f3: c0f62000000000000000 | 	iaddq $0x20, %rsi	# dst+8
+0x0fd: c0f2fcffffffffffffff | 	iaddq $-4,%rdx		# len >= 8?
+0x107: 754500000000000000   | 	jge Loop1		# if so, goto Loop1:
+                            | 
+0x110:                      | Remain: 	
+0x110: c0f20100000000000000 | 		iaddq $1,%rdx # remain 3 element
+0x11a: 735c01000000000000   | 		je Remain3
+0x123: c0f20100000000000000 | 		iaddq $1,%rdx # remain 2 element
+0x12d: 737201000000000000   | 		je Remain2
+0x136: c0f20100000000000000 | 		iaddq $1,%rdx # remain 1 element
+0x140: 739b01000000000000   | 		je Remain1
+0x149: c0f20100000000000000 | 		iaddq $1,%rdx # remain 0 element
+0x153: 73d701000000000000   | 		je Done
+                            | 
+                            | 
+0x15c:                      | Remain3:
+0x15c: 50b71000000000000000 | 	mrmovq 16(%rdi), %r11	# read val from src...
+0x166: 40b61000000000000000 | 	rmmovq %r11,16(%rsi)		# if so, goto Npos:
+0x170: 62bb                 | 	andq %r11,%r11		# count++
+0x172:                      | Remain2:
+0x172: 50b70800000000000000 | 	mrmovq 8(%rdi), %r11	# read val from src...
+0x17c: 718f01000000000000   | 	jle Remain22		# if so, goto Npos:
+0x185: c0f00100000000000000 | 	iaddq $0x1, %rax		# count++
+0x18f:                      | Remain22:
+                            | 
+0x18f: 40b60800000000000000 | 	rmmovq %r11, 8(%rsi)
+0x199: 62bb                 | 	andq %r11, %r11		# val <= 0?
+0x19b:                      | Remain1:
+0x19b: 50b70000000000000000 | 	mrmovq (%rdi), %r11	# read val from src...
+0x1a5: 71b801000000000000   | 	jle Remain12		# if so, goto Npos:
+0x1ae: c0f00100000000000000 | 	iaddq $0x1, %rax		# count++
+0x1b8:                      | Remain12:
+                            | 	
+0x1b8: 40b60000000000000000 | 	rmmovq %r11, (%rsi)
+0x1c2: 62bb                 | 	andq %r11, %r11		# val <= 0?
+0x1c4: 71d701000000000000   | 	jle Done		# if so, goto Npos:
+0x1cd: c0f00100000000000000 | 	iaddq $0x1, %rax		# count++
+                            | 
+                            | ##################################################################
+                            | # Do not modify the following section of code
+                            | # Function epilogue.
+0x1d7:                      | Done:
+0x1d7: 90                   | 	ret
+                            | ##################################################################
+                            | # Keep the following label at the end of your function
+0x1d8:                      | End:
+                            | #/* $end ncopy-ys */
+0x1d8:                      | EndFun:
+                            | 
+                            | ###############################
+                            | # Source and destination blocks 
+                            | ###############################
+0x1d8:                      | 	.align 8
+0x1d8:                      | src:
+0x1d8: ffffffffffffffff     | 	.quad -1
+0x1e0: feffffffffffffff     | 	.quad -2
+0x1e8: 0300000000000000     | 	.quad 3
+0x1f0: 0400000000000000     | 	.quad 4
+0x1f8: fadebc0000000000     | 	.quad 0xbcdefa # This shouldn't get moved
+                            | 
+0x200:                      | 	.align 16
+0x200:                      | Predest:
+0x200: fadebc0000000000     | 	.quad 0xbcdefa
+0x208:                      | dest:
+0x208: abefcd0000000000     | 	.quad 0xcdefab
+0x210: abefcd0000000000     | 	.quad 0xcdefab
+0x218: abefcd0000000000     | 	.quad 0xcdefab
+0x220: abefcd0000000000     | 	.quad 0xcdefab
+0x228:                      | Postdest:
+0x228: bcfade0000000000     | 	.quad 0xdefabc
+                            | 
+0x230:                      | .align 8
+                            | # Run time stack
+0x230: 0000000000000000     | 	.quad 0
+0x238: 0000000000000000     | 	.quad 0
+0x240: 0000000000000000     | 	.quad 0
+0x248: 0000000000000000     | 	.quad 0
+0x250: 0000000000000000     | 	.quad 0
+0x258: 0000000000000000     | 	.quad 0
+0x260: 0000000000000000     | 	.quad 0
+0x268: 0000000000000000     | 	.quad 0
+0x270: 0000000000000000     | 	.quad 0
+0x278: 0000000000000000     | 	.quad 0
+0x280: 0000000000000000     | 	.quad 0
+0x288: 0000000000000000     | 	.quad 0
+0x290: 0000000000000000     | 	.quad 0
+0x298: 0000000000000000     | 	.quad 0
+0x2a0: 0000000000000000     | 	.quad 0
+0x2a8: 0000000000000000     | 	.quad 0
+                            | 
+0x2b0:                      | Stack:

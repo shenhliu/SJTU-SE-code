@@ -1,0 +1,47 @@
+# 518021910273 Liu Shenheng
+# Frame comes from <CS:APP> figure4.7
+# Execution begins at address 0
+        .pos 0              
+        irmovq stack, %rsp # set stack pointer
+        call main          # Execute main program
+        halt               # Terminate program
+#Linked list of 3 elements
+        .align 8
+# Source block
+src:
+        .quad 0x00a
+        .quad 0x0b0
+        .quad 0xc00
+# Destination block
+dest:
+        .quad 0x111
+        .quad 0x222
+        .quad 0x333
+main:
+        irmovq src , %rdi
+        irmovq dest , %rsi
+        irmovq $3 , %rdx
+        call   copyblock
+        ret
+
+
+copyblock:
+        irmovq  $0   , %rax   
+loop:                          
+        andq    %rdx , %rdx    
+        jle     return            
+        mrmovq  (%rdi) , %rcx  
+        irmovq  $8 , %rbx      
+        addq    %rbx , %rdi    
+        rmmovq  %rcx , (%rsi)  
+        addq    %rbx , %rsi    
+        xorq    %rcx , %rax   
+        irmovq  $1 , %rbx      
+        subq    %rbx , %rdx   
+        jmp     loop
+return:
+        ret
+
+        .pos 0x800
+
+stack:

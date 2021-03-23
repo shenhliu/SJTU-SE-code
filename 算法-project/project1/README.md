@@ -14,6 +14,6 @@ LSM Tree (Log-structured Merge Tree) 是一种可以高性能执行大量 写操
 
 FIRST是只有内存（跳表）的版本。可以通过正确性测试和小数据的持久性测试。
 
-SECOND是包含磁盘（sstable）的版本，但是有“无法打开syfwin.S”的问题，需要进一步完善。
+SECOND是包含磁盘（sstable）的版本。
 
 简介在说明文档中有说明，同时在代码中每一步也有详细注释。
